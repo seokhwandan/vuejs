@@ -1,0 +1,287 @@
+import { createStore } from 'vuex'
+import axios from 'axios'
+import createPersistedState from 'vuex-persistedstate'
+import jwt_decode from 'jwt-decode'
+
+const BASE_URL = process.env.VUE_APP_SERVER_URL;
+const getDefaultState = () => {
+  return {
+    // 유저
+    token: null,
+    isLogin: false,
+    username: null,
+    userid: null,
+    userage: null,
+    usergender: null,
+    userphonenum: null,
+    useremail: null,
+    usermbti: null,
+    isGuide: false,
+
+    // 방
+    conferenceNo: null,
+    conferenceCategory: null,
+    conferencePassword: null,
+    conferenceOwner: null,
+    conferenceTitle: null,
+    conferenceDescription: null,
+    conferenceLimit: null,
+    conferenceActive: false,
+    conferenceThumbnail: null,
+
+    // 게시글
+    boardNo: null,
+    boardUserId: null,
+    boardTitle: null,
+    boardContent: null,
+    boardRate: null,
+    boardCreate: null,
+
+    // 공지
+    noticeNo: null,
+    noticeTitle: null,
+    noticeContent: null,
+    noticeCreate: null,
+  }
+}
+
+export default createStore({
+  state: getDefaultState(),
+
+  mutations: {
+    // 유저
+    SET_TOKEN (state, { accessToken }) {
+      state.token = accessToken
+    },
+    LOGIN (state) {
+      state.isLogin = true
+    },
+    USERINFO (state, userinfo) {
+      state.username = userinfo.userName
+      state.userid = userinfo.userId
+      state.userage = userinfo.age
+      state.usergender = userinfo.gender
+      state.userphonenum = userinfo.phoneNum
+      state.useremail = userinfo.email
+      state.usermbti = userinfo.mbti
+      state.isGuide = userinfo.guide
+    },
+    LOGOUT (state) {
+      state.isLogin = false
+    },
+    CLEAR_STATE (state) {
+      Object.assign(state, getDefaultState())
+    },
+
+    // 방
+    CONFERENCEINFO (state, conferenceinfo) {
+      state.conferenceNo = conferenceinfo.conferenceNo
+      state.conferenceCategory = conferenceinfo.conferenceCategory
+      state.conferencePassword = conferenceinfo.conferencePassword
+      state.conferenceOwner = conferenceinfo.owner
+      state.conferenceTitle = conferenceinfo.title
+      state.conferenceDescription = conferenceinfo.description
+      state.conferenceLimit = conferenceinfo.limitUsersNum
+      state.conferenceActive = conferenceinfo.active
+      state.conferenceThumbnail = conferenceinfo.thumbnailUrl
+    },
+    
+    // 게시글
+    BOARDINFO (state, boardinfo) {
+      state.boardNo = boardinfo.boardNo
+      state.boardUserId = boardinfo.userId
+      state.boardTitle = boardinfo.boardTitle
+      state.boardContent = boardinfo.boardContent
+      state.boardRate = boardinfo.boardRate
+      state.boardCreate = boardinfo.boardTime
+    },
+
+
+    // 공지
+    NOTICEINFO (state, noticeinfo) {
+      state.noticeNo = noticeinfo.noticeNo
+      state.noticeTitle = noticeinfo.noticeTitle
+      state.noticeContent = noticeinfo.noticeContent
+      state.noticeCreate = noticeinfo.noticeTime
+    }
+  },
+
+  actions: {
+    // 유저
+    login ({ commit }, payload) {
+      return axios
+        .post(`${BASE_URL}/api/v1/auth/login`, payload)
+        .then(({ data }) => {
+          commit("SET_TOKEN", data)
+          commit("LOGIN")
+          const decode = jwt_decode(data.accessToken)
+          commit("USERINFO", decode.data)
+        })
+    },
+    logout ({ commit }) {
+      commit("CLEAR_STATE")
+    },
+    signup ({ commit }, payload) {
+      return axios
+        .post(`${BASE_URL}/api/v1/users`, payload)
+    },
+    profile ({ commit }, token) {
+      return axios
+        .get(`${BASE_URL}/api/v1/users/me`,
+          { 
+            headers: { "Authorization" : "Bearer " + token }
+          }
+        )
+    },
+
+    // 방
+    conferencePageList ({ commit }, pageNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/conferences?page=${pageNo}`)
+    },
+    conferenceCreate ({ commit }, payload) {
+      return axios
+        .post(`${BASE_URL}/api/v1/conferences`, payload)
+    },
+    conferenceDetail ({ commit }, conferenceNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/conferences/${conferenceNo}`)
+        .then(({ data }) => {
+          commit("CONFERENCEINFO", data)
+        })
+    },
+    conferenceSearch ({ commit }, { searchKey, searchValue }) {
+      const params = new URLSearchParams([[searchKey, searchValue]])
+      return axios
+        .get(`${BASE_URL}/api/v1/conferences/search`, { params })
+    },
+
+    // 게시글
+    articlePageList ({ commit }, pageNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/boards?page=${pageNo}`)
+    },
+    articleDetail ({ commit }, boardNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/boards/${boardNo}`)
+        .then(({ data }) => {
+          commit("BOARDINFO", data)
+        })
+    },
+    articleCreate ({ commit }, payload) {
+      return axios
+        .post(`${BASE_URL}/api/v1/boards`, payload)
+    },
+    articleSearch ({ commit }, { searchKey, searchValue }) {
+      const params = new URLSearchParams([[searchKey, searchValue]])
+      return axios
+      .get(`${BASE_URL}/api/v1/boards/search`, { params })
+    },
+
+    // 공지
+    noticePageList ({ commit }, pageNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/notices?page=${pageNo}`)
+    },
+    noticeDetail ({ commit }, noticeNo) {
+      return axios
+        .get(`${BASE_URL}/api/v1/notices/${noticeNo}`)
+        .then(({ data }) => {
+          commit("NOTICEINFO", data)
+        })
+    },
+    noticeCreate ({ commit }, payload) {
+      return axios
+        .post(`${BASE_URL}/api/v1/notices`, payload)
+    }
+  },
+
+  modules: {
+  },
+
+  getters: {
+    // 유저
+    getToken (state) {
+      return state.token
+    },
+    getIsLogin (state) {
+      return state.isLogin
+    },
+    getUsername (state) {
+      return state.username
+    },
+    getUserid (state) {
+      return state.userid
+    },
+    getUserage (state) {
+      return state.age
+    },
+    getUsergender (state) {
+      return state.gender
+    },
+    getUserphonenum (state) {
+      return state.phonenum
+    },
+    getUseremail (state) {
+      return state.email
+    },
+    getUsermbti (state) {
+      return state.mbti
+    },
+    getUserguide (state) {
+      return state.guide
+    },
+
+    // 방
+    getConferenceowner (state) {
+      return state.conferenceOwner
+    },
+    getConferenceno (state) {
+      return state.conferenceNo
+    },
+    getConferencetitle (state) {
+      return state.conferenceTitle
+    },
+    getConferencedescription (state) {
+      return state.conferenceDescription
+    },
+    getConferencepassword (state) {
+      return state.conferencePassword
+    },
+    getConferencelimit (state) {
+      return state.conferenceLimit
+    },
+    getConferencecategory (state) {
+      return state.conferenceCategory
+    },
+
+
+    // 게시글
+    getBoarduserid (state) {
+      return state.boardUserId
+    },
+    getBoardtitle (state) {
+      return state.boardTitle
+    },
+    getBoardcontent (state) {
+      return state.boardContent
+    },
+    getBoardcreate (state) {
+      return state.boardCreate
+    },
+
+    // 공지
+    getNoticetitle (state) {
+      return state.noticeTitle
+    },
+    getNoticecontent (state) {
+      return state.noticeContent
+    },
+    getNoticecreate (state) {
+      return state.noticeCreate
+    }
+  },
+  plugins: [
+    createPersistedState()
+  ]
+})
